@@ -1,20 +1,3 @@
-<<<<<<< HEAD
-clean:
-	rm -rf classes/*
-
-compile: clean
-	fsc -d classes src/*.scala
-	cd classes; cp ../scalac-plugin.xml .; jar -cf ../divbyzero.jar .
-
-run:
-	scalac -Xplugin:divbyzero.jar src/Test.scala
-
-debug:
-	scalac -Xplugin:divbyzero.jar -Xprint:all src/Test.scala
-
-debug-browse:
-	scalac -Xplugin:divbyzero.jar -Ybrowse:all src/Test.scala
-=======
 OUT_ROOT=out
 CLASSES_PATH=${OUT_ROOT}/classes
 ARTIFACTS_PATH=${OUT_ROOT}/artifacts
@@ -23,9 +6,11 @@ JAR_NAME=${ARTIFACTS_PATH}/build-plugin.jar
 RESOURCES_PATH=src/main/resources
 LIB_PATH=lib
 
+TEST_FILE=src/test/scala/org/so/plugin/DivByZeroTest.scala
+
 all: build run
 
-build:
+build: setup
 	fsc -d ${CLASSES_PATH} \
 		-cp "./${LIB_PATH}/*" \
 		src/main/scala/org/so/plugin/*.scala
@@ -37,7 +22,13 @@ run:
 	scalac -Xprint:all \
 		-d ${CLASSES_PATH} \
 		-Xplugin:${JAR_NAME} \
-		src/test/scala/org/so/plugin/DivByZeroTest.scala
+		${TEST_FILE}
+
+debug: build
+	scalac -Xplugin:${JAR_NAME} -Xprint:all ${TEST_FILE}
+
+debug-browse: build
+	scalac -Xplugin:${JAR_NAME} -Ybrowse:all ${TEST_FILE}
 
 setup: clean
 	mkdir -p ${CLASSES_PATH}
@@ -45,4 +36,3 @@ setup: clean
 
 clean:
 	rm -rf ${OUT_ROOT}
->>>>>>> df00de3778bb75c5dc594f939724a159702aa3f4

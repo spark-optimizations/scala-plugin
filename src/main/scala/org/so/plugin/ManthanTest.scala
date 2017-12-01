@@ -1,24 +1,23 @@
-package local
-import scala.tools.nsc.Global
-import scala.tools.nsc.Phase
-import scala.tools.nsc.plugins.Plugin
-import scala.tools.nsc.plugins.PluginComponent
-import scala.tools.nsc.transform.{ Transform, TypingTransformers }
+package org.so.plugin
 
-class DivByZero(val global: Global) extends Plugin {
+import scala.tools.nsc.Global
+import scala.tools.nsc.plugins.{Plugin, PluginComponent}
+import scala.tools.nsc.transform.{Transform, TypingTransformers}
+
+class ManthanTest(val global: Global) extends Plugin {
   import global._
   val name = "divbyzero"
   val description = "checks for division by zero"
   val components = List[PluginComponent](Component)
 
   private object Component extends PluginComponent with TypingTransformers with Transform {
-    val global: DivByZero.this.global.type = DivByZero.this.global
+    val global: ManthanTest.this.global.type = ManthanTest.this.global
     val runsAfter: List[String] = List[String]{"parser"}
-    val phaseName: String = DivByZero.this.name
+    val phaseName: String = ManthanTest.this.name
     def newPhase(_prev: Phase) = new DivByZeroPhase(_prev)
 
     class DivByZeroPhase(prev: Phase) extends StdPhase(prev) {
-      override def name = DivByZero.this.name
+      override def name = ManthanTest.this.name
       def apply(unit: CompilationUnit) {
         unit.body = new PackageTransformer(unit).transform(unit.body)
       }

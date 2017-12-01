@@ -4,7 +4,7 @@ import scala.tools.nsc.{Global, Phase}
 import scala.tools.nsc.plugins.{Plugin, PluginComponent}
 import scala.tools.nsc.transform.{Transform, TypingTransformers}
 
-class DivByZero(val global: Global) extends Plugin {
+class ShabTest(val global: Global) extends Plugin {
   import global._
 
   val name: String = "divbyzero"
@@ -17,15 +17,15 @@ class DivByZero(val global: Global) extends Plugin {
       with Transform
   {
 
-    override val global: DivByZero.this.global.type = DivByZero.this.global
+    override val global: ShabTest.this.global.type = ShabTest.this.global
     override val runsAfter: List[String] = List[String]("refchecks")
-    override val phaseName: String = DivByZero.this.name
+    override val phaseName: String = ShabTest.this.name
 
     def newPhase(_prev: Phase) = new DivByZeroPhase(_prev)
     def newTransformer(unit: CompilationUnit) = new SetTransformer(unit)
 
     class DivByZeroPhase(prev: Phase) extends StdPhase(prev) {
-      override def name = DivByZero.this.name
+      override def name = ShabTest.this.name
       def apply(unit: CompilationUnit) {
         for ( tree @ Apply(Select(rcvr, nme.DIV), List(Literal(Constant(0)))) <- unit.body
               if rcvr.tpe <:< definitions.IntClass.tpe){
@@ -37,13 +37,11 @@ class DivByZero(val global: Global) extends Plugin {
 
     class SetTransformer(unit: CompilationUnit)
       extends TypingTransformer(unit) {
-
+      val args = List(Literal(Constant(0)))
       override def transform(tree: Tree): Tree = tree match {
-        case a@Apply(Select(rcvr, nme.DIV), List(Literal(Constant(0)))) =>
+        case a@Apply(Select(rcvr, nme.DIV), args) =>
             println("Shab")
-            localTyper.typed(treeCopy.Apply(tree, Ident(newTermName("LinkedHashSet")), "shab"))
-            println("Shab1")
-        }
+            localTyper.typed(treeCopy.Apply(tree, Ident(newTermName("LinkedHashSet")), args))
         case t => super.transform(tree)
       }
     }

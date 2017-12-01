@@ -1,4 +1,4 @@
 <plugin>
     <name>divbyzero</name>
-    <classname>local.DivByZero</classname>
+    <classname>org.so.plugin.ManthanTest</classname>
 </plugin>
