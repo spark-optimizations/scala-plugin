@@ -1,2 +1,9 @@
 *.class
 *.log
+/.idea/
+/project/project/
+/project/target/
+/project/plugins.sbt
+/divbyzero.jar
+/lib/
+/classes/
