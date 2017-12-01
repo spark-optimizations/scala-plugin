@@ -11,7 +11,7 @@ class JoinOptimizer(val global: Global) extends Plugin {
   private object Component extends PluginComponent {
     override val global: Global = JoinOptimizer.this.global
     override val phaseName: String = JoinOptimizer.this.name
-    override val runsAfter: List[ String ] = _e
+    override val runsAfter: List[String] = List[String]("refchecks")
 
     override def newPhase(prev: Phase): Phase = ???
   }
