@@ -1,10 +1,15 @@
-all: build run
+clean:
+	rm -rf classes/*
 
-build:
-	mkdir -p classes
-	fsc -d classes src/main/scala/org/so/plugin/DivByZero.scala
-	cp scalac-plugin.xml classes
-	(cd classes; jar cf ../divbyzero.jar .)
+compile: clean
+	fsc -d classes src/*.scala
+	cd classes; cp ../scalac-plugin.xml .; jar -cf ../divbyzero.jar .
 
 run:
-	scalac -Xprint:all -Xplugin:divbyzero.jar src/test/scala/org/so/plugin/DivByZeroTest.scala
+	scalac -Xplugin:divbyzero.jar src/Test.scala
+
+debug:
+	scalac -Xplugin:divbyzero.jar -Xprint:all src/Test.scala
+
+debug-browse:
+	scalac -Xplugin:divbyzero.jar -Ybrowse:all src/Test.scala
