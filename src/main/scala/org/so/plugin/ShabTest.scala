@@ -1,13 +1,17 @@
 package org.so.plugin
 
+import org.so.plugin.analysis.LambdaAnalyzer
 import org.so.plugin.util._
 
+import scala.collection.mutable
 import scala.tools.nsc.{Global, Phase}
 import scala.tools.nsc.plugins.{Plugin, PluginComponent}
 import scala.tools.nsc.transform.{Transform, TypingTransformers}
 
 class ShabTest(val global: Global) extends Plugin {
   import global._
+
+  val la = new LambdaAnalyzer(global)
 
   val name: String = "divbyzero"
   val description: String = "Description"
@@ -42,24 +46,16 @@ class ShabTest(val global: Global) extends Plugin {
     class MyTransformer(unit: CompilationUnit)
       extends TypingTransformer(unit) {
       override def transform(tree: Tree): Tree = {
-        println(PrettyPrinting.prettyTree(showRaw(tree)))
 
-        tree match {
-          case Apply(_,_) =>  println("Found")
-          case _ =>
-            super.transform(tree)
-
-        }
-
-
-        tree
+        println(la.findUsage(tree))
+        super.transform(tree)
       }
-//        tree match {
-//        case a@Apply(Select(rcvr, nme.DIV), args) =>
-//            println("Shab")
-//            localTyper.typed(treeCopy.Apply(tree, Ident(newTermName("LinkedHashSet")), args))
-//        case t => super.transform(tree)
-//      }
+
+
+
+
+
+
     }
   }
 }

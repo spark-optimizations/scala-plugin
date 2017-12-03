@@ -19,7 +19,7 @@ object BadMapSparkTest {
 
       rdda
           .join(rddb)
-          .mapValues(x=> x._1._1)
+          .mapValues[Int](x=> x._1._1 + x._1._2)
           .collect()
     }
   }

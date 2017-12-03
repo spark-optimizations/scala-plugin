@@ -22,7 +22,7 @@ build: setup
 	@jar cf ${JAR_NAME} \
     		-C ${CLASSES_PATH} .
 
-run:
+run: build
 	@scalac \
 		-cp "./${TEST_LIB_PATH}/*" \
 		-d ${CLASSES_PATH} \
