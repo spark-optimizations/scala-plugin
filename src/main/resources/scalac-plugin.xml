@@ -1,4 +1,4 @@
 <plugin>
     <name>divbyzero</name>
-    <classname>org.so.plugin.ManthanTest</classname>
+    <classname>org.so.plugin.JoinOptimizer</classname>
 </plugin>
