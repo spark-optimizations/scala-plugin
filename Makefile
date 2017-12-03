@@ -23,7 +23,7 @@ build: setup
     		-C ${CLASSES_PATH} .
 
 run: build
-	@scalac \
+	scalac \
 		-cp "./${TEST_LIB_PATH}/*" \
 		-d ${CLASSES_PATH} \
 		-Xplugin:${JAR_NAME} \
