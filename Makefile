@@ -28,7 +28,7 @@ run: build
 		-d ${CLASSES_PATH} \
 		-Xplugin:${JAR_NAME} \
 		${TEST_FILE} \
-		#-Xprint:all
+		-Xprint:JoinOptimizer
 
 debug-browse: build
 	@scalac \
