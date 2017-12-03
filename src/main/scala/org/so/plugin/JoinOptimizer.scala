@@ -1,7 +1,5 @@
 package main.scala.org.so.plugin
 
-import org.so.plugin.analysis.LambdaAnalyzer
-
 import scala.tools.nsc.Global
 import scala.tools.nsc.plugins.Plugin
 import components.AnalysisComponent
