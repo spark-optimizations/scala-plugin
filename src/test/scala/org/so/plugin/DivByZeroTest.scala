@@ -1,6 +1,6 @@
 package org.so.plugin
 
-class DivByZeroTest {
+object DivByZeroTest {
   def main(args: Array[String]): Unit = {
     println(5/0)
   }
