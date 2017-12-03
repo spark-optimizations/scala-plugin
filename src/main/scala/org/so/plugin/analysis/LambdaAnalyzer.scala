@@ -13,13 +13,13 @@ class LambdaAnalyzer(val global: Global) {
   def findUsage(tree: Tree): Option[(Set[String], Set[String])] = tree match {
     case Apply(TypeApply(Select(_, TermName("mapValues")), _), List(f)) =>
       optimizeFunction(f)
-    case a =>
-      a.children
-        .foreach(x=> {
-          val res = findUsage(x)
-          if (res.isDefined) return res
-        })
-      None
+//    case a =>
+//      a.children
+//        .foreach(x=> {
+//          val res = findUsage(x)
+//          if (res.isDefined) return res
+//        })
+     case _ => None
   }
 
   /** Finds parameter usage for function. Will return none if following substructure is not found in the given tree from root.
@@ -30,7 +30,6 @@ class LambdaAnalyzer(val global: Global) {
     */
   def optimizeFunction(tree: Tree): Option[(Set[String], Set[String])] = tree match {
     case Function(List(ValDef(_, TermName(param), _, _)), _) =>
-      println(param)
       Some(findUsages(tree, param))
     case _=> None
   }
