@@ -8,6 +8,7 @@ import scala.tools.nsc.{Global, Phase}
 import scala.tools.nsc.plugins.{Plugin, PluginComponent}
 import scala.tools.nsc.transform.{Transform, TypingTransformers}
 
+
 class ShabTest(val global: Global) extends Plugin {
   import global._
 
@@ -37,8 +38,6 @@ class ShabTest(val global: Global) extends Plugin {
 
         for ( tree @ Apply(Select(rcvr, nme.DIV), List(Literal(Constant(0)))) <- unit.body if rcvr.tpe <:< definitions.IntClass.tpe){
             global.reporter.error(tree.pos, "definitely division by zero")
-
-
         }
       }
     }
@@ -46,16 +45,9 @@ class ShabTest(val global: Global) extends Plugin {
     class MyTransformer(unit: CompilationUnit)
       extends TypingTransformer(unit) {
       override def transform(tree: Tree): Tree = {
-
-        println(la.findUsage(tree))
+        la.findUsage(tree.asInstanceOf[la.global.Tree])
         super.transform(tree)
       }
-
-
-
-
-
-
     }
   }
 }
