@@ -1,4 +1,4 @@
-package main.scala.org.so.plugin.components
+package org.so.plugin.components
 
 
 import scala.tools.nsc.Global
