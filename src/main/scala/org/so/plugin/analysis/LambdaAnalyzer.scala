@@ -3,45 +3,26 @@ package org.so.plugin.analysis
 import scala.tools.nsc.Global
 
 class LambdaAnalyzer(val global: Global) {
-  val RDDTrans = List("mapValues", "map",  "filter")
+  val RDDTrans = Set("mapValues", "map",  "filter")
 
   import global._
-
-  /** Finds parameter usage for mapValues lambda.
-    * "Apply(TypeApply(Select(_, TermName(<SparkFunction>)), _), List(<lambda>))"
-    *
-    * @param tree is the function body tree to parse.
-    * @return A tuple of fields used in left and right side of tuple. If empty then none of the fields are used from that.
-    */
-  @throws(classOf[Exception])
-  def findOptimalParms(tree: Tree): (Set[String], Set[String]) = {
-
-    def matchSparkFn(tree: Tree, fnType : String)
-    : Option[(Set[String], Set[String])] = tree match {
-      case Apply(TypeApply(Select(_, TermName(`fnType`)), _), List(f)) =>
-        Some(optimizeLambdaFn(f, fnType))
-      case _ => None
-    }
-
-    RDDTrans.foreach(x=> {
-      val res = matchSparkFn(tree, x)
-      if (res.isDefined) return res.get
-    })
-
-    throw new Exception("Unsupported spark transformation")
-  }
 
   /** Finds parameter usage for function. Will return none if following substructure is not found in the given tree from root.
     * "Function(List(ValDef(_, TermName(<param>), _, _)), _) "
     *
     * @param tree is the function body tree to parse.
-    * @param fnType is the speark RDD transformation to optimize for.
+    * @param fnName is the spark RDD transformation to optimize for.
     * @return A tuple of fields used in left and right side of tuple. If empty then none of the fields are used from that tuple.
     */
-  private def optimizeLambdaFn(tree: Tree, fnType: String)
-  : (Set[String], Set[String]) = tree match {
-    case Function(List(ValDef(_, TermName(param), _, _)), _) =>
-      findParamUsage(tree, param, fnType)
+  def optimizeLambdaFn(tree: Tree, fnName: String)
+  : (Set[String], Set[String]) = {
+    if (!RDDTrans.contains(fnName))
+      throw new Exception("Unsupported spark transformation : " + fnName)
+
+    tree match {
+      case Function(List(ValDef(_, TermName(param), _, _)), _) =>
+        findParamUsage(tree, param, fnName)
+    }
   }
 
 
