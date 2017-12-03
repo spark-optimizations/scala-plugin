@@ -5,7 +5,7 @@ import org.so.plugin.ShabTest
 
 import scala.tools.nsc.Global
 
-case class LambdaAnalyzer(global: Global) {
+class LambdaAnalyzer(val global: Global) {
   import global._
 
   /** Finds the usages of the given parameter.
