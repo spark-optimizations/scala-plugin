@@ -1,8 +1,11 @@
 package org.so.plugin.analysis
 
+import org.so.plugin
+import org.so.plugin.ShabTest
+
 import scala.tools.nsc.Global
 
-class LambdaAnalyzer(global: Global) {
+case class LambdaAnalyzer(global: Global) {
   import global._
 
   /** Finds the usages of the given parameter.
