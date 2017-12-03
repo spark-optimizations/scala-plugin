@@ -1,8 +1,5 @@
 package org.so.plugin.analysis
 
-import org.so.plugin
-import org.so.plugin.ShabTest
-
 import scala.tools.nsc.Global
 
 class LambdaAnalyzer(val global: Global) {
