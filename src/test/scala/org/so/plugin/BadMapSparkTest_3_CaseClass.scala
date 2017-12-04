@@ -5,7 +5,7 @@ import org.apache.spark.{SparkConf, SparkContext}
 /**
   * @author shabbir.ahussain
   */
-object BadMapSparkTest_3
+object BadMapSparkTest_3_CaseClass
 {
     def main(args: Array[String]) {
       val conf = new SparkConf().setAppName("Bad Test 2")
