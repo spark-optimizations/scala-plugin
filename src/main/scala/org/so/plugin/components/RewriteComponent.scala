@@ -16,7 +16,7 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
   with Transform {
   import global._
 
-  override val runsAfter: List[String] = List[String]("tailcalls")
+  override val runsAfter: List[String] = List[String]("refchecks")
   override def newTransformer(unit: CompilationUnit) = new Transformer(unit)
 
   /**
