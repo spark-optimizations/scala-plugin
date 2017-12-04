@@ -1,6 +1,7 @@
-package main.scala.org.so.plugin.components
+package org.so.plugin.components
 
 import org.so.plugin.analysis.LambdaAnalyzer
+import org.so.plugin.util.PrettyPrinting
 
 import scala.tools.nsc.Global
 import scala.tools.nsc.plugins.PluginComponent
@@ -29,8 +30,31 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
   class Transformer(unit: CompilationUnit)
     extends TypingTransformer(unit) {
     override def transform(tree: Tree): Tree = {
-      la.findUsage(tree.asInstanceOf[la.global.Tree])
-      super.transform(tree)
+      tree match {
+        case a @ q"$x.$y[$t]($lambda)" => {
+          new TreeTraverser().traverse(x)
+          try {
+            val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], y.toString)
+            println(usage)
+          } catch {
+            case e : Exception => println("Can't process this function")
+          }
+          a
+        }
+        case _ => super.transform(tree)
+      }
+    }
+  }
+
+  class TreeTraverser extends Traverser {
+    override def traverse(tree: Tree) : Unit = {
+      tree match {
+        case q"$rdd1.join[$tpt]($rdd2)" =>
+          println("----XXXXX--", rdd1, showRaw(rdd2))
+        case a =>
+//          println("----", a)
+          super.traverse(tree)
+      }
     }
   }
 }
