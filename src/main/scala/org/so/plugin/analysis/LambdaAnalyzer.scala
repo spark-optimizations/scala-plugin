@@ -3,7 +3,7 @@ package org.so.plugin.analysis
 import scala.tools.nsc.Global
 
 class LambdaAnalyzer(val global: Global) {
-  val RDDTrans = Set("mapValues", "map")
+  val RDDTrans = Set("mapValues", "map", "filter")
 
   import global._
 
@@ -68,7 +68,7 @@ class LambdaAnalyzer(val global: Global) {
 
     fnName match {
       case "mapValues" => (fposMapValues(tree, "_1"), fposMapValues(tree, "_2"))
-      case "map"  => (fposMap(tree, "_1"), fposMap(tree, "_2"))
+      case "map" | "filter"  => (fposMap(tree, "_1"), fposMap(tree, "_2"))
     }
   }
 }
