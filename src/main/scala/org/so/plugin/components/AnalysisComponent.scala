@@ -34,6 +34,7 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
       tree match {
         case a @ q"$x.$y[$t]($lambda)" => {
 //          println(PrettyPrinting.prettyTree(showRaw(x)))
+          println("function----", y)
           new JoinAnalyzer(lambda, y.toString).transform(x)
           try {
             val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], y.toString)
@@ -42,6 +43,10 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
           } catch {
             case e : Exception => println("Can't process this function")
           }
+          a
+        }
+        case a @ q"$x.$y($lambda)" => {
+          println("function----", y)
           a
         }
         case _ => super.transform(tree)
