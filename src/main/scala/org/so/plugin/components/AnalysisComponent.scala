@@ -32,9 +32,11 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     override def transform(tree: Tree): Tree = {
       tree match {
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)(..$tags).$y[$ts]($lambda)" => {
-//          println(PrettyPrinting.prettyTree(showRaw(x)))
-          println("function----", y)
-//          println("XXXX", showRaw(args))
+          println("Real Join Return Type")
+          println("Key: ", t.head)
+//          val ty = TypeTree()
+//          ty.tpe.typeArguments
+          println("Values: RDD1 Type ", t(1).tpe.typeArgs(0).typeArgs.length)
           new JoinAnalyzer(lambda, y.toString).transform(args.head)
           a
         }
@@ -52,7 +54,7 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
         case a @ q"$x.$y($lambda)" => {
 //          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
           val transformed = new JoinAnalyzer(lambda, y.toString).transform(x)
-          println("After trans", q"$transformed.$y($lambda)")
+//          println("After trans", q"$transformed.$y($lambda)")
           a
         }
         case _ => super.transform(tree)
@@ -65,7 +67,8 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
       tree match {
         // Find the join function call as well as target RDDs on which join is called.
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$rdd1)(..$tags).join[$tpt]($rdd2)" =>
-          println(rdd1, rdd2)
+          println("rdds----", rdd1.head, rdd2)
+          println("join return type----", t)
 
           // Attempt to obtain the columns used for both RDDs involved in join
           try {
