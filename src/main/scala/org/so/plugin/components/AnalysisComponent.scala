@@ -1,5 +1,6 @@
 package org.so.plugin.components
 
+import main.scala.org.so.plugin.entities.JoinContext
 import org.so.plugin.analysis.LambdaAnalyzer
 import org.so.plugin.util.PrettyPrinting
 
@@ -32,12 +33,11 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     override def transform(tree: Tree): Tree = {
       tree match {
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)(..$tags).$y[$ts]($lambda)" => {
-          println("Real Join Return Type")
-          println("Key: ", t.head)
-//          val ty = TypeTree()
-//          ty.tpe.typeArguments
+          println("Key: ", t)
           println("Values: RDD1 Type ", t(1).tpe.typeArgs(0).typeArgs.length)
-          new JoinAnalyzer(lambda, y.toString).transform(args.head)
+          val ctx = new JoinContext(t, args, tags)
+          println(ctx.getRDDLengths)
+          new JoinAnalyzer(lambda, y.toString, ctx).transform(args.head)
           a
         }
         // This case matches `map` followed by join
@@ -45,15 +45,13 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
         // `rdd.this.RDD.rddToPairRDDFunctions`, which renders the previous case useless
         case a @ q"$x.$y[$t]($lambda)" => {
           println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
-          new JoinAnalyzer(lambda, y.toString).transform(x)
           a
         }
         // This case matches `filter` followed by join
         // In theory, the previous pattern should match these. But filter functions
         // don't have `TypeApply` nodes, since they aren't generic.
         case a @ q"$x.$y($lambda)" => {
-//          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
-          val transformed = new JoinAnalyzer(lambda, y.toString).transform(x)
+//          val transformed = new JoinAnalyzer(lambda, y.toString).transform(x)
 //          println("After trans", q"$transformed.$y($lambda)")
           a
         }
@@ -62,7 +60,9 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     }
   }
 
-  class JoinAnalyzer(val lambda: Tree, val nextFunc: String) extends global.Transformer {
+  class JoinAnalyzer(val lambda: Tree,
+                     val nextFunc: String,
+                     val joinCtx: JoinContext) extends global.Transformer {
     override def transform(tree: Tree) : Tree = {
       tree match {
         // Find the join function call as well as target RDDs on which join is called.
@@ -80,6 +80,18 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
           a
         case _ => super.transform(tree)
       }
+    }
+  }
+
+
+  class JoinContext(joinReturnType: List[Tree],
+                         joinBody: List[Tree],
+                         pairRDDTags: List[Tree]) {
+
+    def getRDDLengths() : Tuple2[Int, Int] = {
+      val joinValueReturnTypes = joinReturnType(1)
+      (joinValueReturnTypes.tpe.typeArgs(0).typeArgs.length,
+        joinValueReturnTypes.tpe.typeArgs(1).typeArgs.length)
     }
   }
 }
