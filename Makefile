@@ -9,7 +9,7 @@ LIB_PATH=lib
 TEST_LIB_PATH=lib-min
 
 #TEST_FILE=src/test/scala/org/so/plugin/DivByZeroTest.scala
-TEST_FILE=src/test/scala/org/so/plugin/BadMapSparkTest_1_MapValues3.scala
+TEST_FILE=src/test/scala/org/so/plugin/BadMapSparkTest_1_MapValues.scala
 
 all: build run
 
