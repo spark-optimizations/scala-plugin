@@ -29,11 +29,7 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     */
   class Transformer(unit: CompilationUnit)
     extends TypingTransformer(unit) {
-    var once = false
     override def transform(tree: Tree): Tree = {
-      if (once)
-        println(PrettyPrinting.prettyTree(showRaw(tree)))
-      once = false
       tree match {
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)(..$tags).$y[$ts]($lambda)" => {
 //          println(PrettyPrinting.prettyTree(showRaw(x)))
