@@ -32,7 +32,8 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     override def transform(tree: Tree): Tree = {
       tree match {
         case a @ q"$x.$y[$t]($lambda)" => {
-          new TreeTraverser().traverse(x)
+//          println(PrettyPrinting.prettyTree(showRaw(x)))
+          new JoinAnalyzer(lambda, y.toString).transform(x)
           try {
             val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], y.toString)
             println(usage)
@@ -46,14 +47,41 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     }
   }
 
-  class TreeTraverser extends Traverser {
-    override def traverse(tree: Tree) : Unit = {
+  class JoinAnalyzer(val lambda: Tree, val nextFunc: String) extends global.Transformer {
+    override def transform(tree: Tree) : Tree = {
+//      println(PrettyPrinting.prettyTree(showRaw(tree)))
       tree match {
-        case q"$rdd1.join[$tpt]($rdd2)" =>
-          println("----XXXXX--", rdd1, showRaw(rdd2))
-        case a =>
-//          println("----", a)
-          super.traverse(tree)
+        case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)" =>
+
+          // Spark RDD joins reside on the first value of list of Applications in
+          // args. Therefore, check whether there's a join inside the first value
+          // in args (List).
+          if (hasJoin(args.head)) {
+            // We have identified a Spark RDD join.
+            println("----XXXXX--", args)
+            try {
+              val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], nextFunc)
+              println(usage)
+            } catch {
+              case e : Exception => println("Can't process this function")
+            }
+          }
+          a
+        case _ => super.transform(tree)
+      }
+    }
+
+    /**
+      * Given a tree, return true if the tree contains a join
+      * @param tree
+      * @return
+      */
+    def hasJoin(tree: Tree) : Boolean = {
+      tree match {
+        case j @ q"$rdd1.join[$typeTree]($rdd2)" =>
+          println("Join Found...", j)
+          true
+        case _ => false
       }
     }
   }
