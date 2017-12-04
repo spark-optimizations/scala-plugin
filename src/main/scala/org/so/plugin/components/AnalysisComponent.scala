@@ -39,7 +39,7 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
           a
         }
         // This case matches `map` followed by join
-        // For some reason, map followed by has one less level of nesting of
+        // For some reason, map followed by join has one less level of nesting of
         // `rdd.this.RDD.rddToPairRDDFunctions`, which renders the previous case useless
         case a @ q"$x.$y[$t]($lambda)" => {
           println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
@@ -50,8 +50,9 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
         // In theory, the previous pattern should match these. But filter functions
         // don't have `TypeApply` nodes, since they aren't generic.
         case a @ q"$x.$y($lambda)" => {
-          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
-          new JoinAnalyzer(lambda, y.toString).transform(x)
+//          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
+          val transformed = new JoinAnalyzer(lambda, y.toString).transform(x)
+          println("After trans", q"$transformed.$y($lambda)")
           a
         }
         case _ => super.transform(tree)
