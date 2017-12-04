@@ -36,17 +36,11 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
 //          println(PrettyPrinting.prettyTree(showRaw(x)))
           println("function----", y)
           new JoinAnalyzer(lambda, y.toString).transform(x)
-          try {
-            val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], y.toString)
-            println(usage)
-            println(PrettyPrinting.prettyTree(showRaw(lambda)))
-          } catch {
-            case e : Exception => println("Can't process this function")
-          }
           a
         }
         case a @ q"$x.$y($lambda)" => {
           println("function----", y)
+          new JoinAnalyzer(lambda, y.toString).transform(x)
           a
         }
         case _ => super.transform(tree)
@@ -65,7 +59,7 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
           // in args (List).
           if (hasJoin(args.head)) {
             // We have identified a Spark RDD join.
-            println("----XXXXX--", args)
+            println("----XXXXX--", PrettyPrinting.prettyTree(showRaw(args)))
             try {
               val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], nextFunc)
               println(usage)
