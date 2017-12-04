@@ -29,17 +29,32 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     */
   class Transformer(unit: CompilationUnit)
     extends TypingTransformer(unit) {
+    var once = false
     override def transform(tree: Tree): Tree = {
-
+      if (once)
+        println(PrettyPrinting.prettyTree(showRaw(tree)))
+      once = false
       tree match {
-        case a @ q"$x.$y[$t]($lambda)" => {
+        case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)(..$tags).$y[$ts]($lambda)" => {
 //          println(PrettyPrinting.prettyTree(showRaw(x)))
           println("function----", y)
+//          println("XXXX", showRaw(args))
+          new JoinAnalyzer(lambda, y.toString).transform(args.head)
+          a
+        }
+        // This case matches `map` followed by join
+        // For some reason, map followed by has one less level of nesting of
+        // `rdd.this.RDD.rddToPairRDDFunctions`, which renders the previous case useless
+        case a @ q"$x.$y[$t]($lambda)" => {
+          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
           new JoinAnalyzer(lambda, y.toString).transform(x)
           a
         }
+        // This case matches `filter` followed by join
+        // In theory, the previous pattern should match these. But filter functions
+        // don't have `TypeApply` nodes, since they aren't generic.
         case a @ q"$x.$y($lambda)" => {
-          println("function----", y)
+          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
           new JoinAnalyzer(lambda, y.toString).transform(x)
           a
         }
@@ -50,39 +65,20 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
 
   class JoinAnalyzer(val lambda: Tree, val nextFunc: String) extends global.Transformer {
     override def transform(tree: Tree) : Tree = {
-//      println(PrettyPrinting.prettyTree(showRaw(tree)))
       tree match {
-        case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)" =>
+        // Find the join function call as well as target RDDs on which join is called.
+        case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$rdd1)(..$tags).join[$tpt]($rdd2)" =>
+          println(rdd1, rdd2)
 
-          // Spark RDD joins reside on the first value of list of Applications in
-          // args. Therefore, check whether there's a join inside the first value
-          // in args (List).
-          if (hasJoin(args.head)) {
-            // We have identified a Spark RDD join.
-            println("----XXXXX--", PrettyPrinting.prettyTree(showRaw(args)))
-            try {
-              val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], nextFunc)
-              println(usage)
-            } catch {
-              case e : Exception => println("Can't process this function")
-            }
+          // Attempt to obtain the columns used for both RDDs involved in join
+          try {
+            val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], nextFunc)
+            println(usage)
+          } catch {
+            case e : Exception => println("Can't process this function")
           }
           a
         case _ => super.transform(tree)
-      }
-    }
-
-    /**
-      * Given a tree, return true if the tree contains a join
-      * @param tree
-      * @return
-      */
-    def hasJoin(tree: Tree) : Boolean = {
-      tree match {
-        case j @ q"$rdd1.join[$typeTree]($rdd2)" =>
-          println("Join Found...", j)
-          true
-        case _ => false
       }
     }
   }
