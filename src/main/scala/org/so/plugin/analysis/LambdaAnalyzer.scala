@@ -43,7 +43,7 @@ class LambdaAnalyzer(val global: Global) {
       case Select(Select(Ident(TermName(`param`)), TermName(`pos`)), TermName(idx)) =>  Set(idx)
       case Select(Ident(TermName(`param`)), TermName(`pos`)) => Set("-1")
       case Select(Ident(TermName(`param`)), TermName(_)) => Set()
-      case Ident(TermName(`param`)) => Set("-2")
+      case Ident(TermName(`param`)) => Set("-1")
       case a =>
         a.children
           .flatMap(x => fposMapValues(x, pos))
@@ -59,7 +59,7 @@ class LambdaAnalyzer(val global: Global) {
       case Select(Select(Select(Ident(TermName(`param`)), TermName("_2")), TermName(`pos`)), TermName(idx)) => Set(idx)
       case Select(Select(Ident(TermName(`param`)), TermName("_2")), TermName(`pos`)) => Set("-1")
       case Select(Select(Ident(TermName(`param`)), TermName("_2")), TermName(_)) => Set()
-      case Select(Ident(TermName(`param`)), TermName("_2")) => Set("-2")
+      case Select(Ident(TermName(`param`)), TermName("_2")) => Set("-1")
       case a =>
         a.children
           .flatMap(x => fposMap(x, pos))
