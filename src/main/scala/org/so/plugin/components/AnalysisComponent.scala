@@ -37,7 +37,6 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
           try {
             val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], y.toString)
             println(usage)
-            println(PrettyPrinting.prettyTree(showRaw(lambda)))
           } catch {
             case e : Exception => println("Can't process this function")
           }
