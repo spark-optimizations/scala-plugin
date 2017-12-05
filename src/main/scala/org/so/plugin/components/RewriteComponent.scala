@@ -7,8 +7,10 @@ import scala.tools.nsc.plugins.PluginComponent
 import scala.tools.nsc.transform.{Transform, TypingTransformers}
 
 /**
+  * @author Manthan Thakar
+  *         
   * This component is responsible for analyzing lambda's used after spark joins to
-  * identify columns used. This information later on informs column pruning of tables.
+  * identify columns used. This information then informs column pruning of tables.
   * @param global
   * @param phaseName
   */
@@ -31,10 +33,15 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
       // Look for a join pattern
       case a @ q"$x.join($y).$func[$ts]($lambda)" => {
         try {
-          val transformations = getRDDTransformations(lambda.asInstanceOf[global.Tree], func.toString)
+          val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], func.toString)
           // Build a tree for parameters of transformed mapValues functions on RDDs.
-          val rdd1Map = transformations._1
-          val rdd2Map = transformations._2
+          val rdd1Map = getRDDTransformations(usage._1, "a", lambda.asInstanceOf[global.Tree], func.toString)
+          val rdd2Map = getRDDTransformations(usage._2, "b", lambda.asInstanceOf[global.Tree], func.toString)
+          if (usage._1.contains("-1") && usage._2.contains("-1")) return a
+          if (usage._1.contains("-1"))
+            return q"$x.join($y.mapValues(b => $rdd2Map)).$func[$ts]($lambda)"
+          if (usage._2.contains("-1"))
+            return q"$x.mapValues(a => $rdd1Map).join($y).$func[$ts]($lambda)"
           // Return the transformed tree
           return q"$x.mapValues(a => $rdd1Map).join($y.mapValues(b => $rdd2Map)).$func[$ts]($lambda)"
         } catch {
@@ -44,10 +51,15 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
       }
       case a @ q"$x.join($y).$func($lambda)" => {
         try {
-          val transformations = getRDDTransformations(lambda.asInstanceOf[global.Tree], func.toString)
+          val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], func.toString)
           // Build a tree for parameters of transformed mapValues functions on RDDs.
-          val rdd1Map = transformations._1
-          val rdd2Map = transformations._2
+          val rdd1Map = getRDDTransformations(usage._1, "a", lambda.asInstanceOf[global.Tree], func.toString)
+          val rdd2Map = getRDDTransformations(usage._2, "b", lambda.asInstanceOf[global.Tree], func.toString)
+          if (usage._1.contains("-1") && usage._2.contains("-1")) return a
+          if (usage._1.contains("-1"))
+            return q"$x.join($y.mapValues(b => $rdd2Map)).$func($lambda)"
+          if (usage._2.contains("-1"))
+            return q"$x.mapValues(a => $rdd1Map).join($y).$func($lambda)"
           // Return the transformed tree
           return q"$x.mapValues(a => $rdd1Map).join($y.mapValues(b => $rdd2Map)).$func($lambda)"
         } catch {
@@ -65,16 +77,10 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
       * @param func
       * @return
       */
-    def getRDDTransformations(lambda: Tree, func: String): (Tree, Tree) = {
-      val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], func)
-      var params1 = List[Tree]() // Stores the parameters for transformations on RDD1
-      var params2 = List[Tree]() // Stores the parameters for transformations on RDD2
-      for (i <- 22 to 1 by -1) {
-        params1 = getParamNode(usage._1, "a", i) :: params1
-        params2 = getParamNode(usage._2, "b", i) :: params2
-      }
-      (Apply(Select(Ident("scala"), TermName("Tuple22")), params1),
-        Apply(Select(Ident("scala"), TermName("Tuple22")), params2))
+    def getRDDTransformations(usageLookup: Set[String], termName: String,
+                              lambda: Tree, func: String): Tree = {
+      val params = getParamNodes(usageLookup, termName)
+      Apply(Select(Ident("scala"), TermName("Tuple22")), params)
     }
 
     /**
@@ -82,15 +88,17 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
       * otherwise return Literal `null`
       * @param usageLookup a set containing accessors on a RDD, depicting the columns used
       * @param termName a dummy termname for the `Select` node
-      * @param i column number
       * @return
       */
-    def getParamNode(usageLookup: Set[String], termName: String, i : Int) : Tree = {
-      if (usageLookup.contains("_" + i))
-        Select(Ident(TermName(termName)), TermName("_"+i))
-      else
-        Literal(Constant(null))
-
+    def getParamNodes(usageLookup: Set[String], termName: String) : List[Tree] = {
+      var params = List[Tree]()
+      for (i <- 22 to 1 by -1) {
+        if (usageLookup.contains("_" + i))
+          params = Select(Ident(TermName(termName)), TermName("_" + i)) :: params
+        else
+          params = Literal(Constant(null)) :: params
+      }
+      params
     }
   }
 }
