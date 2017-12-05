@@ -1,6 +1,5 @@
 package org.so.plugin.components
 
-import main.scala.org.so.plugin.entities.JoinContext
 import org.so.plugin.analysis.LambdaAnalyzer
 import org.so.plugin.util.PrettyPrinting
 
@@ -33,18 +32,17 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     override def transform(tree: Tree): Tree = {
       tree match {
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)(..$tags).$y[$ts]($lambda)" => {
-          println("Key: ", t)
-          println("Values: RDD1 Type ", t(1).tpe.typeArgs(0).typeArgs.length)
           val ctx = new JoinContext(t, args, tags)
-          println(ctx.getRDDLengths)
-          new JoinAnalyzer(lambda, y.toString, ctx).transform(args.head)
+//          println(ctx.getRDDLengths)
+          val trans = new JoinAnalyzer(lambda, y.toString, ctx).transform(args.head)
+          println("Transformed", trans)
           a
         }
         // This case matches `map` followed by join
         // For some reason, map followed by join has one less level of nesting of
         // `rdd.this.RDD.rddToPairRDDFunctions`, which renders the previous case useless
         case a @ q"$x.$y[$t]($lambda)" => {
-          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
+//          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
           a
         }
         // This case matches `filter` followed by join
@@ -69,29 +67,44 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$rdd1)(..$tags).join[$tpt]($rdd2)" =>
           println("rdds----", rdd1.head, rdd2)
           println("join return type----", t)
-
           // Attempt to obtain the columns used for both RDDs involved in join
           try {
             val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], nextFunc)
-            println(usage)
+            val usedIndices = {
+              (usage._1.map(getIndexFromAccessor), usage._2.map(getIndexFromAccessor))
+            }
+            println("Used ", usedIndices)
+            val rddTypes = joinCtx.getRDDTypes
+            val replacedTypes = {
+              (rddTypes._1.zipWithIndex.map(x => if (usedIndices._1.contains(x._2 + 1)) x._1 else null),
+              rddTypes._2.zipWithIndex.map(x => if (usedIndices._2.contains(x._2 + 1)) x._1 else null))
+            }
+            println("Replaced Types", replacedTypes)
+            val newTypes = List(joinCtx.getJoinKeyType, replacedTypes)
+            val args = joinCtx.joinBody
+            return q"rdd.this.RDD.rddToPairRDDFunctions[$replacedTypes]"
           } catch {
-            case e : Exception => println("Can't process this function")
+            case e : Exception => println("Can't process this function", e)
           }
           a
         case _ => super.transform(tree)
       }
     }
+
+    def getIndexFromAccessor(a : String): Int = a.split("_")(1).toInt
   }
 
+  class JoinContext(val joinReturnType: List[Tree],
+                    val joinBody: List[Tree],
+                    val pairRDDTags: List[Tree]) {
 
-  class JoinContext(joinReturnType: List[Tree],
-                         joinBody: List[Tree],
-                         pairRDDTags: List[Tree]) {
-
-    def getRDDLengths() : Tuple2[Int, Int] = {
+    def getRDDTypes() : (List[Type], List[Type]) = {
+//      joinReturnType(1).tpe = List((Int, Int), (Int, Int))
       val joinValueReturnTypes = joinReturnType(1)
-      (joinValueReturnTypes.tpe.typeArgs(0).typeArgs.length,
-        joinValueReturnTypes.tpe.typeArgs(1).typeArgs.length)
+      (joinValueReturnTypes.tpe.typeArgs(0).typeArgs,
+        joinValueReturnTypes.tpe.typeArgs(1).typeArgs)
     }
+
+    def getJoinKeyType(): Tree = joinReturnType.head
   }
 }
