@@ -32,28 +32,24 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     override def transform(tree: Tree): Tree = {
       tree match {
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$args)(..$tags).$y[$ts]($lambda)" => {
-          println("Real Join Return Type")
-          println("Key: ", t.head)
-//          val ty = TypeTree()
-//          ty.tpe.typeArguments
-          println("Values: RDD1 Type ", t(1).tpe.typeArgs(0).typeArgs.length)
-          new JoinAnalyzer(lambda, y.toString).transform(args.head)
+          val ctx = new JoinContext(t, args, tags)
+//          println(ctx.getRDDLengths)
+          val trans = new JoinAnalyzer(lambda, y.toString, ctx).transform(args.head)
+          println("Transformed", trans)
           a
         }
         // This case matches `map` followed by join
         // For some reason, map followed by join has one less level of nesting of
         // `rdd.this.RDD.rddToPairRDDFunctions`, which renders the previous case useless
         case a @ q"$x.$y[$t]($lambda)" => {
-          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
-          new JoinAnalyzer(lambda, y.toString).transform(x)
+//          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
           a
         }
         // This case matches `filter` followed by join
         // In theory, the previous pattern should match these. But filter functions
         // don't have `TypeApply` nodes, since they aren't generic.
         case a @ q"$x.$y($lambda)" => {
-//          println("function----", y, "\n", PrettyPrinting.prettyTree(showRaw(x)))
-          val transformed = new JoinAnalyzer(lambda, y.toString).transform(x)
+//          val transformed = new JoinAnalyzer(lambda, y.toString).transform(x)
 //          println("After trans", q"$transformed.$y($lambda)")
           a
         }
@@ -62,24 +58,66 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     }
   }
 
-  class JoinAnalyzer(val lambda: Tree, val nextFunc: String) extends global.Transformer {
+  /**
+    * Join analyzer is responsible for finding joins on RDD types and transforming the target RDDs (ones on either side
+    * of a join) by adding a map stage before calling join.
+    * @param lambda
+    * @param nextFunc
+    * @param joinCtx
+    */
+  class JoinAnalyzer(val lambda: Tree,
+                     val nextFunc: String,
+                     val joinCtx: JoinContext) extends global.Transformer {
     override def transform(tree: Tree) : Tree = {
       tree match {
         // Find the join function call as well as target RDDs on which join is called.
         case a @ q"rdd.this.RDD.rddToPairRDDFunctions[..$t](..$rdd1)(..$tags).join[$tpt]($rdd2)" =>
           println("rdds----", rdd1.head, rdd2)
           println("join return type----", t)
-
           // Attempt to obtain the columns used for both RDDs involved in join
           try {
             val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], nextFunc)
-            println(usage)
+            val usedIndices = {
+              (usage._1.map(getIndexFromAccessor), usage._2.map(getIndexFromAccessor))
+            }
+            println("Used ", usedIndices)
+            val rddTypes = joinCtx.getRDDTypes
+            val replacedTypes = {
+              (rddTypes._1.zipWithIndex.map(x => if (usedIndices._1.contains(x._2 + 1)) x._1 else null),
+              rddTypes._2.zipWithIndex.map(x => if (usedIndices._2.contains(x._2 + 1)) x._1 else null))
+            }
+            println("Replaced Types", replacedTypes)
+            val newTypes = List(joinCtx.getJoinKeyType, replacedTypes)
+            val args = joinCtx.joinBody
+            return q"rdd.this.RDD.rddToPairRDDFunctions[$replacedTypes]"
           } catch {
-            case e : Exception => println("Can't process this function")
+            case e : Exception => println("Can't process this function", e)
           }
           a
         case _ => super.transform(tree)
       }
     }
+
+    def getIndexFromAccessor(a : String): Int = a.split("_")(1).toInt
+  }
+
+  /**
+    * Join context captures the outer body of join call. This information is used in various places
+    * to transform the tree with new types.
+    * @param joinReturnType
+    * @param joinBody
+    * @param pairRDDTags
+    */
+  class JoinContext(val joinReturnType: List[Tree],
+                    val joinBody: List[Tree],
+                    val pairRDDTags: List[Tree]) {
+
+    def getRDDTypes() : (List[Type], List[Type]) = {
+      val joinValueReturnTypes = joinReturnType(1)
+      (joinValueReturnTypes.tpe.typeArgs(0).typeArgs,
+        joinValueReturnTypes.tpe.typeArgs(1).typeArgs)
+    }
+
+    def getJoinKeyType(): Tree = joinReturnType.head
   }
 }
