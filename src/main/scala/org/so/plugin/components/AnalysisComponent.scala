@@ -58,6 +58,13 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     }
   }
 
+  /**
+    * Join analyzer is responsible for finding joins on RDD types and transforming the target RDDs (ones on either side
+    * of a join) by adding a map stage before calling join.
+    * @param lambda
+    * @param nextFunc
+    * @param joinCtx
+    */
   class JoinAnalyzer(val lambda: Tree,
                      val nextFunc: String,
                      val joinCtx: JoinContext) extends global.Transformer {
@@ -94,12 +101,18 @@ class AnalysisComponent(val global: Global, val phaseName: String) extends Plugi
     def getIndexFromAccessor(a : String): Int = a.split("_")(1).toInt
   }
 
+  /**
+    * Join context captures the outer body of join call. This information is used in various places
+    * to transform the tree with new types.
+    * @param joinReturnType
+    * @param joinBody
+    * @param pairRDDTags
+    */
   class JoinContext(val joinReturnType: List[Tree],
                     val joinBody: List[Tree],
                     val pairRDDTags: List[Tree]) {
 
     def getRDDTypes() : (List[Type], List[Type]) = {
-//      joinReturnType(1).tpe = List((Int, Int), (Int, Int))
       val joinValueReturnTypes = joinReturnType(1)
       (joinValueReturnTypes.tpe.typeArgs(0).typeArgs,
         joinValueReturnTypes.tpe.typeArgs(1).typeArgs)
