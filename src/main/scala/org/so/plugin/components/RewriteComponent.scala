@@ -79,20 +79,22 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
       */
     def getRDDTransformations(usageLookup: Set[String], termName: String,
                               lambda: Tree, func: String): Tree = {
-      val params = getParamNodes(usageLookup, termName)
-      Apply(Select(Ident("scala"), TermName("Tuple22")), params)
+      val hi = usageLookup.map(_.substring(1).toInt).max
+      val params = getParamNodes(usageLookup, hi, termName)
+      Apply(Select(Ident("scala"), TermName("Tuple" + hi)), params)
     }
 
     /**
       * Given a usage lookup for an RDD's column, return Select node if a column is in the lookup,
       * otherwise return Literal `null`
       * @param usageLookup a set containing accessors on a RDD, depicting the columns used
+      * @param hi is the maximum tuple term used.
       * @param termName a dummy termname for the `Select` node
       * @return
       */
-    def getParamNodes(usageLookup: Set[String], termName: String) : List[Tree] = {
+    def getParamNodes(usageLookup: Set[String], hi:Int, termName: String) : List[Tree] = {
       var params = List[Tree]()
-      for (i <- 22 to 1 by -1) {
+      for (i <- hi to 1 by -1) {
         if (usageLookup.contains("_" + i))
           params = Select(Ident(TermName(termName)), TermName("_" + i)) :: params
         else
