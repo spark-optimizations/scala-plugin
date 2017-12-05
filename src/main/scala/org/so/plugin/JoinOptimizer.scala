@@ -4,6 +4,11 @@ import scala.tools.nsc.Global
 import scala.tools.nsc.plugins.Plugin
 import components.{AnalysisComponent, RewriteComponent}
 
+/**
+  * @author Manthan Thakar
+  * Plugin class for Join Optimizer
+  * @param global
+  */
 class JoinOptimizer(val global: Global) extends Plugin {
 
   override val name = "JoinOptimizer"
