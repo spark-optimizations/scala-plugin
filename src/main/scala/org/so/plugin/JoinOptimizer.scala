@@ -10,5 +10,5 @@ class JoinOptimizer(val global: Global) extends Plugin {
   override val description = "Optimize Spark joins for all actions"
   val analysisComponent = new AnalysisComponent(global, name)
   val rewriteComponent = new RewriteComponent(global, name)
-  override val components = List(analysisComponent, rewriteComponent)
+  override val components = List(rewriteComponent)
 }
