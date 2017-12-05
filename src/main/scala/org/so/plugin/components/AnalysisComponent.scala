@@ -8,6 +8,7 @@ import scala.tools.nsc.plugins.PluginComponent
 import scala.tools.nsc.transform.{Transform, TypingTransformers}
 
 /**
+  * @author Manthan Thakar
   * This component is responsible for analyzing lambda's used after spark joins to
   * identify columns used. This information later on informs column pruning of tables.
   * @param global
