@@ -31,16 +31,10 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
       // Look for a join pattern
       case a @ q"$x.join($y).$func[$ts]($lambda)" => {
         try {
-          val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], func.toString)
-          var params1 = List[Tree]() // Stores the parameters for transformations on RDD1
-          var params2 = List[Tree]() // Stores the parameters for transformations on RDD2
-          for (i <- 22 to 1 by -1) {
-            params1 = getParamNode(usage._1, "a", i) :: params1
-            params2 = getParamNode(usage._2, "b", i) :: params2
-          }
+          val transformations = getRDDTransformations(lambda.asInstanceOf[global.Tree], func.toString)
           // Build a tree for parameters of transformed mapValues functions on RDDs.
-          val rdd1Map = Apply(Select(Ident("scala"), TermName("Tuple22")), params1)
-          val rdd2Map = Apply(Select(Ident("scala"), TermName("Tuple22")), params2)
+          val rdd1Map = transformations._1
+          val rdd2Map = transformations._2
           // Return the transformed tree
           return q"$x.mapValues(a => $rdd1Map).join($y.mapValues(b => $rdd2Map)).$func[$ts]($lambda)"
         } catch {
@@ -48,7 +42,39 @@ class RewriteComponent(val global: Global, val phaseName: String) extends Plugin
         }
         a
       }
+      case a @ q"$x.join($y).$func($lambda)" => {
+        try {
+          val transformations = getRDDTransformations(lambda.asInstanceOf[global.Tree], func.toString)
+          // Build a tree for parameters of transformed mapValues functions on RDDs.
+          val rdd1Map = transformations._1
+          val rdd2Map = transformations._2
+          // Return the transformed tree
+          return q"$x.mapValues(a => $rdd1Map).join($y.mapValues(b => $rdd2Map)).$func($lambda)"
+        } catch {
+          case e : Exception =>
+        }
+        a
+      }
       case _ => super.transform(tree)
+    }
+
+    /**
+      * Given a lambda used right after a join call on RDDs and the name of the function that contains the lambda,
+      * return transformations for RDDs
+      * @param lambda
+      * @param func
+      * @return
+      */
+    def getRDDTransformations(lambda: Tree, func: String): (Tree, Tree) = {
+      val usage = la.optimizeLambdaFn(lambda.asInstanceOf[la.global.Tree], func)
+      var params1 = List[Tree]() // Stores the parameters for transformations on RDD1
+      var params2 = List[Tree]() // Stores the parameters for transformations on RDD2
+      for (i <- 22 to 1 by -1) {
+        params1 = getParamNode(usage._1, "a", i) :: params1
+        params2 = getParamNode(usage._2, "b", i) :: params2
+      }
+      (Apply(Select(Ident("scala"), TermName("Tuple22")), params1),
+        Apply(Select(Ident("scala"), TermName("Tuple22")), params2))
     }
 
     /**
