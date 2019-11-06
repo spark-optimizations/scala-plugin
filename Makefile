@@ -9,8 +9,8 @@ LIB_PATH=lib
 TEST_LIB_PATH=lib-min
 
 #TEST_FILE=src/test/scala/org/so/plugin/DivByZeroTest.scala
-TEST_FILE=src/test/scala/org/so/plugin/Main.scala
-SCALAC = "/Users/manthanthakar/scala-2.11.8/bin/scalac"
+TEST_FILE=src/test/scala/org/so/plugin/BadMapSparkTest_1_MapValues.scala
+SCALAC = "scalac"
 
 all: build run
 
